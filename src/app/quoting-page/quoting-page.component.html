@@ -1,0 +1,41 @@
+<div>
+  <p>message : {{ quotationRequest?.message }}</p>
+  <p>Devis : {{ quotationRequest?.quotation }}</p>
+  <p>ID Utilisateur : {{ quotationRequest?.userId }}</p>
+  <img
+    class="img"
+    [src]="quotationRequest?.image"
+    [alt]="quotationRequest?.message"
+  />
+
+  <!-- Utilisez une instance de FormGroup distincte pour chaque item si nécessaire -->
+  <form
+    [formGroup]="updateQuotationForm"
+    (ngSubmit)="
+      updateQuotation(
+        quoteId,
+        updateQuotationForm.controls['newQuotation'].value
+      )
+    "
+  >
+    <mat-form-field appearance="fill">
+      <mat-label>Devis</mat-label>
+      <input
+        matInput
+        formControlName="newQuotation"
+        type="number"
+        placeholder="Nouveau montant du devis"
+      />
+      <!-- Gestion des erreurs -->
+    </mat-form-field>
+
+    <button
+      mat-raised-button
+      color="primary"
+      type="submit"
+      [disabled]="!updateQuotationForm.valid"
+    >
+      Mettre à jour le devis
+    </button>
+  </form>
+</div>
