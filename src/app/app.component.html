@@ -1,1 +1,18 @@
-<router-outlet></router-outlet>
+<h1>Quotation Front</h1>
+
+<div class="main">
+  <ng-container *ngIf="currentQuoteIdInRoute; else noMoreQuotesElement">
+    <router-outlet></router-outlet>
+  </ng-container>
+  <div>
+    Other quotation request :
+    <!-- Scroll bar pour la liste d'attente -->
+    <mat-list class="my-list" [style.height.px]="150">
+      <mat-list-item *ngFor="let requests of otherQuotationRequests"
+        >Request : {{ requests.id }}</mat-list-item
+      >
+    </mat-list>
+  </div>
+
+  <ng-template #noMoreQuotesElement> No more quotes </ng-template>
+</div>

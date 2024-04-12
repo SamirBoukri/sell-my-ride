@@ -1,0 +1,14 @@
+{
+  "targets": {
+    "sellmyride-408da": {
+      "hosting": {
+        "sell-my-ride": [
+          "sell-my-ride-foquotation"
+        ]
+      }
+    }
+  },
+  "projects": {
+    "default": "sellmyride-408da"
+  }
+}

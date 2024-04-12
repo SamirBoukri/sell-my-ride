@@ -1,0 +1,9 @@
+.my-list {
+    max-height: 200px; 
+    overflow-y: auto;
+    size: 50%
+  }
+
+.main {
+    display: flex
+}

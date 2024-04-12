@@ -1,23 +1,26 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject } from "@angular/core";
 import {
   CollectionReference,
   DocumentData,
   Firestore,
   collection,
   collectionData,
-} from '@angular/fire/firestore';
-import { Observable, Subscription } from 'rxjs';
-import { CommonModule } from '@angular/common';
-import { QuotingPageComponent } from './quoting-page/quoting-page.component';
+  query,
+  where,
+} from "@angular/fire/firestore";
+import { Observable, Subscription } from "rxjs";
+import { CommonModule } from "@angular/common";
+import { QuotingPageComponent } from "./quoting-page/quoting-page.component";
 import {
   ActivatedRoute,
   Router,
   RouterLink,
   RouterLinkActive,
   RouterModule,
-} from '@angular/router';
-import { query, where } from 'firebase/firestore';
-import { RequestService } from './service/request.service';
+  RoutesRecognized,
+} from "@angular/router";
+import { RequestService } from "./service/request.service";
+import { MatListModule} from "@angular/material/list"
 
 interface QuotationRequest {
   quotation?: number;
@@ -28,9 +31,9 @@ interface QuotationRequest {
 }
 
 @Component({
-  selector: 'app-root',
-  templateUrl: 'app.component.html',
-  styleUrls: ['app.component.css'],
+  selector: "app-root",
+  templateUrl: "app.component.html",
+  styleUrls: ["app.component.css"],
   standalone: true,
   imports: [
     CommonModule,
@@ -38,75 +41,72 @@ interface QuotationRequest {
     RouterModule,
     RouterLink,
     RouterLinkActive,
+    MatListModule
   ],
 })
 export class AppComponent implements OnInit {
-  title = 'Sell My Ride';
+  title = "Sell My Ride";
   items$: Observable<QuotationRequest[]>;
   subscription!: Subscription;
   quotionRequests!: QuotationRequest[];
-  previousQuoteId: number = 0;
+  currentQuoteIdInRoute: string | undefined;
+  otherQuotationRequests!: QuotationRequest[]
+
   constructor(
     private firestore: Firestore,
     private router: Router,
-    private activeRoute: ActivatedRoute,
     private requestService: RequestService
   ) {
-    const aCollection = collection(this.firestore, 'quotationRequest');
+    const aCollection = collection(this.firestore, "quotationRequest");
     this.items$ = collectionData(
       query(
         aCollection as CollectionReference<QuotationRequest, QuotationRequest>,
-        where('quotation', '==', -1)
+        where("quotation", "==", -1)
       ),
-      { idField: 'id' }
+      { idField: "id" }
     );
-    // this.activeRoute.paramMap.subscribe((p) =>
-    //   console.log('hey', JSON.stringify(p))
-    // );
-    // this.items$.subscribe((newQuotes) => {
-    //   // this.router.navigate(['quoting', newQuotes[0].id]);
-    // });
   }
 
   ngOnInit(): void {
-    // if (routeId === '' || routeId === undefined || routeId === null) {
-    //@ts-ignore
-    //@ts-ignore
-    // this.router.navigate(['/quoting/' + last(this.items$)[0].id]);
-    // this.requestService.sendFirstNavEvent(data[0].id);
-    // }
-    this.subscription = this.requestService
-      .getEvent()
-      .subscribe((eventData) => {
-        this.router.navigate(['quoting', this.quotionRequests[0].id]);
-        // this.quotionRequests.shift();
-        // console.log('ICI' + this.quotionRequests);
-        // this.router.navigate(['quoting', this.quotionRequests[1].id]);
-      });
-    this.items$.subscribe((data) => {
-      let routeId =
-        //@ts-ignore
-        this.activeRoute.snapshot._routerState.url.split('quoting/')[1];
-      let nextQuoteId = data[0]?.id;
-      console.log(nextQuoteId, routeId);
-      this.quotionRequests = data;
-      if (routeId !== nextQuoteId) {
-        console.log('HERE');
-        // this.previousQuoteId = routeId;
-        this.router.navigate(['quoting/' + nextQuoteId]);
-        // if (routeId === '' || routeId === undefined || routeId === null) {
-        // this.router.navigate(['quoting', data[0].id]);
-        // } else {
-        //   console.log('already okay');
-        // }
+    // IMPORTANT
+    // On utilise cette méthode pour accéder aux paramètres d'une route hors du router outlet
+    // Voir lien ici : https://stackoverflow.com/questions/42947133/parent-components-gets-empty-params-from-activatedroute
+    this.router.events.subscribe((value) => {
+      if (value instanceof RoutesRecognized) {
+        this.currentQuoteIdInRoute =
+          value.state.root.firstChild?.params["quoteId"];
       }
     });
-    //   //this.router.navigate(['quoting', data[0].id]);
-    //   this.router.navigate([], { skipLocationChange: true }).then(() => {
-    //     this.router.navigate(['quoting', data[0].id], {
-    //       queryParams: { refresh: new Date().getTime() },
-    //     });
-    //   });
-    // });
+    // La liste de cotation sera mise à jour automatique à chaque envoi d'estimation
+    // Grace au realtime de firestore, qui détecte que les datas ont changé côté back
+    // Il n'y a donc RIEN  à faire pour récupérer la prochaine estimation non traitée
+    this.items$.subscribe((data) => {
+      this.quotionRequests = data;
+      if(this.quotionRequests.length > 1){
+        this.otherQuotationRequests = this.quotionRequests.slice(1)
+      } else {
+        this.otherQuotationRequests = []
+      }
+      
+      // On va traiter le cas ici où on ouvre la page pour la première fois (pas d'id de quote)
+      if (!this.currentQuoteIdInRoute && data.length > 0) {
+        // Naturellement, le premier élément de cette liste sera la première cotation non traitée
+        // Grace au where de notre requête
+        this.router.navigate(["quoting", data[0].id]);
+      }
+    });
+
+    // Ici, on traite le cas ou on vient d'envoyer une estimation
+    // this.quotionRequest a été mis à jour grâce au subscribe juste en haut
+    // ...car l'envoi de notre estimation a modifié les données coté back ...
+    // ...ce qui a forcé firestore à jour notre collection en temps réel, sans aucune action de notre part
+    this.requestService.getNextQuoteEvent().subscribe((e) => {
+      if (this.quotionRequests.length > 0) {
+        this.router.navigate(["quoting", this.quotionRequests[0].id]);
+      } else {
+        // S'il n'y a plus aucune cotation à traiter, on retoure à la route /quoting
+        this.router.navigate(["quoting"]);
+      }
+    });
   }
 }

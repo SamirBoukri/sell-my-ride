@@ -15,23 +15,14 @@ import { updateDoc } from '@angular/fire/firestore';
 export class RequestService {
   constructor(private db: Firestore) {}
 
-  private submitEvent = new Subject<any>();
-  private navFirstEvent = new Subject<string>();
+  private nextQutoteEvent = new Subject<any>();
 
-  sendEvent(data: any) {
-    this.submitEvent.next(data);
+  sendNextQuoteEvent(data?: any) {
+    this.nextQutoteEvent.next(data);
   }
 
-  sendFirstNavEvent(id: string) {
-    this.navFirstEvent.next(id);
-  }
-
-  getEvent() {
-    return this.submitEvent.asObservable();
-  }
-
-  getFirstNavEvent() {
-    return this.navFirstEvent.asObservable();
+  getNextQuoteEvent() {
+    return this.nextQutoteEvent.asObservable();
   }
 
   getQuotationRequests(): Observable<any[]> {

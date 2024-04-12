@@ -1,5 +1,5 @@
-import { Component, Input, OnInit } from '@angular/core';
-import { ActivatedRoute, Route, Router } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { Observable, Subscription, count } from 'rxjs';
 import { Firestore, doc, docData } from '@angular/fire/firestore';
 import { RequestService } from '../service/request.service';
@@ -29,7 +29,6 @@ interface QuotationRequest {
     MatInputModule,
     MatFormFieldModule,
   ],
-  // providers: [RequestService],
   styleUrls: ['./quoting-page.component.css'],
 })
 export class QuotingPageComponent implements OnInit {
@@ -55,16 +54,8 @@ export class QuotingPageComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private db: Firestore,
-    private requestservice: RequestService,
-    private router: Router,
-    private activeRoute: ActivatedRoute
+    private requestservice: RequestService
   ) {
-    // this.activeRoute.params.subscribe((params) => {
-    //   //  console.log(params);
-    //   // if(params['quoteId'] === ""){
-    //   //   console.log()
-    //   // }
-    // });
     this.quotationForm = new FormGroup({
       message: new FormControl('', Validators.required),
       quotation: new FormControl('', [
@@ -74,61 +65,31 @@ export class QuotingPageComponent implements OnInit {
     });
     this.unsub = this.route.paramMap.subscribe((params) => {
       this.quoteId = params.get('quoteId');
-      // console.log(this.preivousQuoteId, this.quoteId);
-      // if (this.quoteId !== this.preivousQuoteId) {
-      //   console.log('HERE');
-      //   this.preivousQuoteId === this.quoteId;
-      // console.log(this.quoteId);
       if (this.quoteId) {
         const docRef = doc(this.db, 'quotationRequest', this.quoteId);
         this.quotation$ = docData(docRef);
         this.quotation$.subscribe((data) => {
-          // console.log(this.quoteId);
-          // console.log(this.quotationRequest?.message, this.quoteId);
           this.quotationRequest = data;
-          // console.log(this.quotationRequest);
         });
+      } else {
       }
-      // }
     });
   }
-  ngOnInit() {
-    /* if (this.quoteId) {
-      const docRef = doc(this.db, `quotations/${this.quoteId}`);
-      this.quotation$ = docData(docRef);
-    }
-    this.quotation$ = this.requestservice.getQuotationRequests(); */
-    /*this.requestservice.getQuotationRequests().subscribe((data) => {
-      this.quotations = data;
-    });*/
-  }
-  // onSubmit() {
-  //   if (this.quotationForm.valid) {
-  //     this.requestservice
-  //       .addQuotation(this.quotationForm.value)
-  //       .then(() => {
-  //         console.log('Devis ajouté avec succès!');
-  //         // Ici, vous pouvez par exemple réinitialiser le formulaire
-  //         this.quotationForm.reset();
-  //         this.requestservice.sendEvent('bruh');
-  //       })
-  //       .catch((error) => {
-  //         console.error("Erreur lors de l'ajout du devis:", error);
-  //       });
-  //   }
-  // }
+  ngOnInit() {}
+
   updateQuotation(quoteId: string, newQuotation: any) {
     // 'any' peut être remplacé par le type approprié
     const newQuotationNumber = Number(newQuotation); // Assurez-vous que c'est un nombre
-    // this.requestservice.sendEvent('bruh');
     if (!isNaN(newQuotationNumber)) {
       this.requestservice
         .updateQuotation(quoteId, newQuotationNumber)
         .then(() => {
           console.log('Devis mis à jour avec succès!');
-          this.requestservice.sendEvent('bruh');
-
-          // ...
+          // Déclenche l'affichage de la cote suivante -
+          // Cet event n'a besoin d'aucune data
+          this.requestservice.sendNextQuoteEvent();
+          // Bien étudier à quoi sert patchValue
+          this.updateQuotationForm.patchValue({ newQuotation: '' });
         })
         .catch((error) => {
           console.error('Erreur lors de la mise à jour du devis:', error);
